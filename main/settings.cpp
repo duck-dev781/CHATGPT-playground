@@ -12,24 +12,21 @@ PlayerSettings factory_defaults;
 bool load_from(const char* ns, PlayerSettings& out) {
     nvs_handle_t h{};
     if (nvs_open(ns, NVS_READONLY, &h) != ESP_OK) return false;
-
-    char name[96];
+    char name[96] = {};
     size_t name_len = sizeof(name);
     int32_t volume = 50;
     uint8_t shuffle = 0;
     uint8_t repeat = 0;
-
-    esp_err_t e = nvs_get_str(h, "name", name, &name_len);
-    if (e == ESP_OK) out.player_name = name;
+    esp_err_t name_err = nvs_get_str(h, "name", name, &name_len);
     nvs_get_i32(h, "volume", &volume);
     nvs_get_u8(h, "shuffle", &shuffle);
     nvs_get_u8(h, "repeat", &repeat);
     nvs_close(h);
-
+    if (name_err == ESP_OK) out.player_name = name;
     out.volume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     out.shuffle = shuffle != 0;
     out.repeat = repeat != 0;
-    return e == ESP_OK;
+    return name_err == ESP_OK;
 }
 
 bool save_to(const char* ns, const PlayerSettings& s) {
@@ -46,13 +43,20 @@ bool save_to(const char* ns, const PlayerSettings& s) {
 }
 
 bool settings_init() {
-    if (nvs_flash_init() == ESP_ERR_NVS_NO_FREE_PAGES ||
-        nvs_flash_init() == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        return false;
+    esp_err_t e = nvs_flash_init();
+    if (e == ESP_ERR_NVS_NO_FREE_PAGES || e == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        if (nvs_flash_erase() != ESP_OK) return false;
+        e = nvs_flash_init();
     }
-    load_from(kFactoryNamespace, factory_defaults);
-    load_from(kNamespace, current);
-    if (current.player_name.empty()) current = factory_defaults;
+    if (e != ESP_OK) return false;
+    if (!load_from(kFactoryNamespace, factory_defaults)) {
+        factory_defaults = PlayerSettings{};
+        save_to(kFactoryNamespace, factory_defaults);
+    }
+    if (!load_from(kNamespace, current)) {
+        current = factory_defaults;
+        save_to(kNamespace, current);
+    }
     return true;
 }
 
