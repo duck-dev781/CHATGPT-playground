@@ -1,0 +1,61 @@
+name: Build ESP32 Music Player 2.0
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: esp32-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.3
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build firmware
+        shell: bash
+        run: |
+          . /opt/esp/idf/export.sh
+          idf.py set-target esp32
+          idf.py build
+
+      - name: Collect firmware files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          cp build/*.bin release/ 2>/dev/null || true
+          cp build/flash_args release/ 2>/dev/null || true
+          cp build/partition_table/partition-table.bin release/ 2>/dev/null || true
+          test -n "$(find release -maxdepth 1 -type f | head -n 1)"
+          printf 'Build: %s\nCommit: %s\n' "${GITHUB_RUN_NUMBER}" "${GITHUB_SHA}" > release/build-info.txt
+          cd release
+          zip -9 -r "ESP32-Music-Player-2.0-${GITHUB_RUN_NUMBER}.zip" . -x '*.zip'
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESP32-Music-Player-2.0-${{ github.run_number }}
+          path: release/
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="build-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" release/*.bin release/*.zip release/build-info.txt \
+            --title "ESP32 Music Player 2.0 build ${GITHUB_RUN_NUMBER}" \
+            --notes "Automated ESP-IDF firmware build from commit ${GITHUB_SHA}." \
+            --target "${GITHUB_SHA}"
