@@ -1,0 +1,16 @@
+# Ralph offline response database
+# Format: trigger|response
+# Add as many compact rules/templates as you want.
+# Lines beginning with # are comments for humans; the current firmware
+# treats them as harmless unmatched entries.
+
+hello|Hi! I'm Ralph!
+hi|Hey! Ralph here.
+good morning|Good morning!
+good night|Goodnight!
+how are you|I'm doing great in my tiny house!
+what are you doing|I'm hanging out in my house.
+house|I like my little house.
+temperature|I'm checking my chip temperature.
+joke|Why did the ESP32 nap? Too many interrupts.
+minecraft|Minecraft sounds fun!
