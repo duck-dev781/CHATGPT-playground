@@ -54,10 +54,10 @@ void setup() {
   Serial.println("I2S initialized.");
   Serial.println("Starting Bluetooth A2DP...");
 
-  // This is the Bluetooth device name shown on your phone/Chromebook.
-  a2dp_sink.start("ESP32 PCM5102A", true);
+  // Bluetooth device name shown on your phone/Chromebook.
+  a2dp_sink.start("LOud! Com.", true);
 
-  Serial.println("Bluetooth device: ESP32 PCM5102A");
+  Serial.println("Bluetooth device: LOud! Com.");
   Serial.println("Connect to it and play music.");
 }
 
